@@ -15,9 +15,9 @@ Usage
 
 	1.	Configure the Script: Adjust the parameters for the port, log file, and JSON file as needed. For example:
    
-     .\Start-UDPLogger.ps1 -Port 1194 -LogFile "C:\Logs\udpserver.log" -JsonFile "C:\Logs\active_ips.json"
+     		Start-UDPLogger -Port 1194 -LogFile "C:\Logs\udpserver.log" -JsonFile "C:\Logs\active_ips.json"
      
-	2.	Run the Script: Execute the script to start the UDP server. The server will begin listening for UDP packets on the specified port and log each received packet, along with the IP address and timestamp.
+	2.	Run the Script: Execute the script to start the UDP server. The server will begin listening for UDP packets on the specified port and log each received packet, along with 		the IP address and timestamp.
 	3.	Monitor the Log and JSON Files:
 	    •	The log file will contain a record of all received packets with timestamps.
 	    •	The JSON file will maintain a list of active IP addresses and the last time they communicated with the server. Inactive IPs are automatically removed after 5 minutes.
