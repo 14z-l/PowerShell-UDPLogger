@@ -1,4 +1,4 @@
-﻿function Start-UDPLogger {
+function Start-UDPLogger {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $false)]
@@ -9,25 +9,25 @@
         [string]$JsonFile = "C:\Logs\active_ips.json"
     )
 
-    # Sicherstellen, dass der Log-Ordner existiert
+    # Ensure the log directory exists
     $logDir = Split-Path -Path $LogFile -Parent
     if (-not (Test-Path $logDir)) {
         New-Item -Path $logDir -ItemType Directory | Out-Null
     }
 
-    # Sicherstellen, dass die JSON-Datei existiert
+    # Ensure the JSON file exists
     if (-not (Test-Path $JsonFile)) {
         @() | ConvertTo-Json | Set-Content -Path $JsonFile
     }
 
-    # UDP-Client erstellen
+    # Create UDP client
     $UdpClient = New-Object System.Net.Sockets.UdpClient($Port)
     $RemoteEndPoint = New-Object System.Net.IPEndPoint([System.Net.IPAddress]::Any, 0)
 
-    # IP-Adressen Tracking
+    # IP Address Tracking
     $ipTracker = @{}
 
-    # Funktion zum Schreiben in die Log-Datei
+    # Function to write to the log file
     function Write-Log {
         param (
             [string]$Message
@@ -35,15 +35,15 @@
         Add-Content -Path $LogFile -Value "$((Get-Date).ToString('yyyy-MM-dd HH:mm:ss')) - $Message"
     }
 
-    # Funktion zum Formatieren des Datums in DD-HH-MM
+    # Function to format date in DD-HH-MM
     function Format-Date {
         param (
             [datetime]$DateTime
         )
-        return $DateTime.ToString('yyyy-MM-dd HH:mm:ss')
+        return $DateTime.ToString('dd-HH-mm')
     }
 
-    # Funktion zum Laden der IP-Daten aus der JSON-Datei
+    # Function to load IP data from the JSON file
     function Load-IPData {
         if (Test-Path $JsonFile) {
             $content = Get-Content -Path $JsonFile -Raw
@@ -53,7 +53,7 @@
         }
     }
 
-    # Funktion zum Speichern der IP-Daten in der JSON-Datei
+    # Function to save IP data to the JSON file
     function Save-IPData {
         param (
             [array]$Data
@@ -61,34 +61,34 @@
         $Data | ConvertTo-Json -Depth 3 | Set-Content -Path $JsonFile
     }
 
-    # Initiales Laden der IP-Daten
+    # Initial loading of IP data
     $ipData = Load-IPData
 
-    Write-Log "Server ist bereit und wartet auf Verbindungen auf Port $Port..."
+    Write-Log "Server is ready and waiting for connections on port $Port..."
 
     try {
         while ($true) {
             try {
-                # Daten empfangen
+                # Receive data
                 $ReceiveBytes = $UdpClient.Receive([ref]$RemoteEndPoint)
 
-                # Daten in String umwandeln
+                # Convert data to string
                 $ASCIIEncoding = New-Object System.Text.ASCIIEncoding
                 $ReceivedString = $ASCIIEncoding.GetString($ReceiveBytes)
 
-                # IP-Adresse und Zeit aktualisieren
+                # Update IP address and time
                 $ipAddress = $RemoteEndPoint.Address.ToString()
                 $currentTime = Get-Date
                 $ipTracker[$ipAddress] = $currentTime
 
-                # Informationen in die Log-Datei schreiben
-                Write-Log "Empfangen von $($RemoteEndPoint.Address):$($RemoteEndPoint.Port) - Payload: $ReceivedString"
+                # Write information to the log file
+                Write-Log "Received from $($RemoteEndPoint.Address):$($RemoteEndPoint.Port) - Payload: $ReceivedString"
             }
             catch {
-                Write-Log "Fehler beim Empfangen von Daten: $_"
+                Write-Log "Error receiving data: $_"
             }
 
-            # Überprüfen und Bereinigen von inaktiven IPs
+            # Check and clean up inactive IPs
             $fiveMinutesAgo = (Get-Date).AddMinutes(-5)
             $ipTracker.Keys | ForEach-Object {
                 if ($ipTracker[$_] -lt $fiveMinutesAgo) {
@@ -96,7 +96,7 @@
                 }
             }
 
-            # IP-Daten aktualisieren
+            # Update IP data
             $ipData = $ipData | Where-Object { $_.IPAddress -in $ipTracker.Keys }
             $ipData | ForEach-Object {
                 $_.LastSeen = Format-Date -DateTime $ipTracker[$_.IPAddress]
@@ -107,14 +107,14 @@
                 }
             }
             
-            # IP-Daten in der JSON-Datei speichern
+            # Save IP data to the JSON file
             Save-IPData -Data $ipData
 
             Start-Sleep -Seconds 10
         }
     }
     catch {
-        Write-Log "Server gestoppt."
+        Write-Log "Server stopped."
     }
     finally {
         $UdpClient.Close()
